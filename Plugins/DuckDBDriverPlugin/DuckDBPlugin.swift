@@ -785,6 +785,7 @@ final class DuckDBPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
         let result = try await executeParameterized(query: query, parameters: [.text(schemaName), .text(table)])
 
         let pkColumns = try await fetchPrimaryKeyColumns(table: table, schema: schemaName)
+        let enumMap = try await fetchEnumLabelMap(schema: schemaName)
 
         return result.rows.compactMap { row in
             guard let name = row[safe: 0]?.asText,
@@ -801,7 +802,8 @@ final class DuckDBPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
                 dataType: dataType,
                 isNullable: isNullable,
                 isPrimaryKey: isPrimaryKey,
-                defaultValue: defaultValue
+                defaultValue: defaultValue,
+                allowedValues: resolveEnumValues(dataType: dataType, enumMap: enumMap)
             )
         }
     }
@@ -833,6 +835,7 @@ final class DuckDBPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
             }
         }
 
+        let enumMap = try await fetchEnumLabelMap(schema: schemaName)
         var allColumns: [String: [PluginColumnInfo]] = [:]
 
         for row in result.rows {
@@ -851,13 +854,54 @@ final class DuckDBPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
                 dataType: dataType,
                 isNullable: isNullable,
                 isPrimaryKey: isPrimaryKey,
-                defaultValue: defaultValue
+                defaultValue: defaultValue,
+                allowedValues: resolveEnumValues(dataType: dataType, enumMap: enumMap)
             )
 
             allColumns[tableName, default: []].append(column)
         }
 
         return allColumns
+    }
+
+    private func fetchEnumLabelMap(schema: String) async throws -> [String: [String]] {
+        let typeNamesQuery = """
+            SELECT type_name
+            FROM duckdb_types()
+            WHERE schema_name = $1 AND type_category = 'ENUM'
+        """
+        let typeResult: PluginQueryResult
+        do {
+            typeResult = try await executeParameterized(query: typeNamesQuery, parameters: [.text(schema)])
+        } catch {
+            return [:]
+        }
+        let typeNames = typeResult.rows.compactMap { $0[safe: 0]?.asText }
+        guard !typeNames.isEmpty else { return [:] }
+
+        var map: [String: [String]] = [:]
+        for typeName in typeNames {
+            let quoted = "\"\(typeName.replacingOccurrences(of: "\"", with: "\"\""))\""
+            let valuesQuery = "SELECT UNNEST(enum_range(NULL::\(quoted)))::VARCHAR AS value"
+            let valuesResult: PluginQueryResult
+            do {
+                valuesResult = try await execute(query: valuesQuery)
+            } catch {
+                continue
+            }
+            let labels = valuesResult.rows.compactMap { $0[safe: 0]?.asText }
+            if !labels.isEmpty {
+                map[typeName] = labels
+            }
+        }
+        return map
+    }
+
+    private func resolveEnumValues(dataType: String, enumMap: [String: [String]]) -> [String]? {
+        if let values = enumMap[dataType], !values.isEmpty {
+            return values
+        }
+        return EnumValueParser.parseMySQLEnumOrSet(from: dataType)
     }
 
     func fetchIndexes(table: String, schema: String?) async throws -> [PluginIndexInfo] {
