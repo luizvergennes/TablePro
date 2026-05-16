@@ -35,8 +35,19 @@ struct SidebarView: View {
         viewModel.capabilities(for: connectionId)
     }
 
+    private var isSchemaGrouped: Bool {
+        AppSettingsManager.shared.editor.displaySchemasInSidebar
+            && !schemaService.schemas(for: connectionId).isEmpty
+    }
+
     private var hasAnyMatch: Bool {
-        SidebarObjectKind.allCases.contains { kind in
+        if isSchemaGrouped {
+            return schemaService.schemas(for: connectionId).contains { schema in
+                !viewModel.filteredTables(in: schema, from: tables).isEmpty
+                    || !viewModel.filteredRoutines(in: schema, from: routines).isEmpty
+            }
+        }
+        return SidebarObjectKind.allCases.contains { kind in
             countFor(kind: kind) > 0
         }
     }
@@ -188,7 +199,16 @@ struct SidebarView: View {
 
     // MARK: - Table List
 
+    @ViewBuilder
     private var tableList: some View {
+        if isSchemaGrouped {
+            schemaGroupedTableList
+        } else {
+            kindGroupedTableList
+        }
+    }
+
+    private var kindGroupedTableList: some View {
         List(selection: selectedTablesBinding) {
             ForEach(SidebarObjectKind.allCases, id: \.self) { kind in
                 sectionView(for: kind)
@@ -218,10 +238,99 @@ struct SidebarView: View {
             EmptyView()
         } primaryAction: { selection in
             guard let table = selection.first else { return }
-            onDoubleClick?(table)
+            handleTableOpen(table)
         }
         .onExitCommand {
             sidebarState.selectedTables.removeAll()
+        }
+    }
+
+    private var schemaGroupedTableList: some View {
+        List(selection: selectedTablesBinding) {
+            ForEach(schemaService.schemas(for: connectionId), id: \.self) { schema in
+                schemaSection(for: schema)
+            }
+        }
+        .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
+        .contextMenu(forSelectionType: TableInfo.self) { _ in
+            EmptyView()
+        } primaryAction: { selection in
+            guard let table = selection.first else { return }
+            handleTableOpen(table)
+        }
+        .onExitCommand {
+            sidebarState.selectedTables.removeAll()
+        }
+    }
+
+    @ViewBuilder
+    private func schemaSection(for schema: String) -> some View {
+        let schemaTables = viewModel.filteredTables(in: schema, from: tables)
+        let schemaRoutines = viewModel.filteredRoutines(in: schema, from: routines)
+        let hasContent = !schemaTables.isEmpty || !schemaRoutines.isEmpty
+        if hasContent {
+            Section(isExpanded: schemaExpandedBinding(for: schema, hasMatches: hasContent)) {
+                ForEach(schemaTables) { table in
+                    TableRow(
+                        table: table,
+                        isPendingTruncate: pendingTruncates.contains(table.name),
+                        isPendingDelete: pendingDeletes.contains(table.name)
+                    )
+                    .tag(table)
+                    .contextMenu {
+                        SidebarContextMenu(
+                            clickedTable: table,
+                            selectedTables: sidebarState.selectedTables,
+                            isReadOnly: coordinator?.safeModeLevel.blocksAllWrites ?? false,
+                            onBatchToggleTruncate: { viewModel.batchToggleTruncate(tableNames: $0) },
+                            onBatchToggleDelete: { viewModel.batchToggleDelete(tableNames: $0) },
+                            coordinator: coordinator
+                        )
+                    }
+                }
+                ForEach(schemaRoutines) { routine in
+                    RoutineRowView(routine: routine)
+                        .tag(routine)
+                        .contextMenu {
+                            RoutineContextMenu(routine: routine) { selected in
+                                coordinator?.showRoutineDDL(selected)
+                            }
+                        }
+                }
+            } header: {
+                Text(schema)
+                    .contextMenu {
+                        Button(String(localized: "Refresh")) {
+                            Task { await coordinator?.refreshTables() }
+                        }
+                    }
+            }
+        }
+    }
+
+    private func schemaExpandedBinding(for schema: String, hasMatches: Bool) -> Binding<Bool> {
+        Binding(
+            get: { viewModel.effectiveSchemaExpanded(schema, hasMatches: hasMatches) },
+            set: { viewModel.schemaExpanded[schema] = $0 }
+        )
+    }
+
+    private func handleTableOpen(_ table: TableInfo) {
+        guard let targetSchema = table.schema,
+              let switchable = DatabaseManager.shared.driver(for: connectionId) as? SchemaSwitchable,
+              let currentSchema = switchable.currentSchema,
+              targetSchema != currentSchema else {
+            onDoubleClick?(table)
+            return
+        }
+        Task {
+            do {
+                try await switchable.switchSchema(to: targetSchema)
+            } catch {
+                // Schema switch failed; still attempt to open with current schema
+            }
+            onDoubleClick?(table)
         }
     }
 

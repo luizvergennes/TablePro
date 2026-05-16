@@ -64,6 +64,9 @@ protocol DatabaseDriver: AnyObject {
     /// Fetch all tables in the database
     func fetchTables() async throws -> [TableInfo]
 
+    /// Fetch tables for a specific schema (nil = current schema)
+    func fetchTables(schema: String?) async throws -> [TableInfo]
+
     /// Fetch columns for a specific table
     func fetchColumns(table: String) async throws -> [ColumnInfo]
 
@@ -358,6 +361,11 @@ extension DatabaseDriver {
 
     /// Default: no schema support (MySQL/SQLite don't use schemas in the same way)
     func fetchSchemas() async throws -> [String] { [] }
+
+    /// Default: ignore schema and call existing fetchTables(). Plugin-backed drivers override.
+    func fetchTables(schema: String?) async throws -> [TableInfo] {
+        try await fetchTables()
+    }
 
     func fetchProcedures(schema: String?) async throws -> [RoutineInfo] { [] }
 

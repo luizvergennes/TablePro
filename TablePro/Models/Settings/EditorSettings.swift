@@ -76,6 +76,7 @@ struct EditorSettings: Codable, Equatable {
     var uppercaseKeywords: Bool
     var queryParametersEnabled: Bool
     var jsonViewerPreferredMode: JSONViewMode
+    var displaySchemasInSidebar: Bool
 
     static let `default` = EditorSettings(
         showLineNumbers: true,
@@ -85,7 +86,8 @@ struct EditorSettings: Codable, Equatable {
         vimModeEnabled: false,
         uppercaseKeywords: false,
         queryParametersEnabled: true,
-        jsonViewerPreferredMode: .text
+        jsonViewerPreferredMode: .text,
+        displaySchemasInSidebar: false
     )
 
     init(
@@ -96,7 +98,8 @@ struct EditorSettings: Codable, Equatable {
         vimModeEnabled: Bool = false,
         uppercaseKeywords: Bool = false,
         queryParametersEnabled: Bool = true,
-        jsonViewerPreferredMode: JSONViewMode = .text
+        jsonViewerPreferredMode: JSONViewMode = .text,
+        displaySchemasInSidebar: Bool = false
     ) {
         self.showLineNumbers = showLineNumbers
         self.highlightCurrentLine = highlightCurrentLine
@@ -106,6 +109,7 @@ struct EditorSettings: Codable, Equatable {
         self.uppercaseKeywords = uppercaseKeywords
         self.queryParametersEnabled = queryParametersEnabled
         self.jsonViewerPreferredMode = jsonViewerPreferredMode
+        self.displaySchemasInSidebar = displaySchemasInSidebar
     }
 
     init(from decoder: Decoder) throws {
@@ -118,6 +122,7 @@ struct EditorSettings: Codable, Equatable {
         uppercaseKeywords = try container.decodeIfPresent(Bool.self, forKey: .uppercaseKeywords) ?? false
         queryParametersEnabled = try container.decodeIfPresent(Bool.self, forKey: .queryParametersEnabled) ?? true
         jsonViewerPreferredMode = try container.decodeIfPresent(JSONViewMode.self, forKey: .jsonViewerPreferredMode) ?? .text
+        displaySchemasInSidebar = try container.decodeIfPresent(Bool.self, forKey: .displaySchemasInSidebar) ?? false
     }
 
     /// Clamped tab width (1-16)

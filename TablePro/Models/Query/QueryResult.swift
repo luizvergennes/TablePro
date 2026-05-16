@@ -73,10 +73,16 @@ enum DatabaseError: Error, LocalizedError {
 
 /// Information about a database table
 struct TableInfo: Identifiable, Hashable, Sendable {
-    var id: String { "\(name)_\(type.rawValue)" }
+    var id: String {
+        if let schema, !schema.isEmpty {
+            return "\(schema).\(name)_\(type.rawValue)"
+        }
+        return "\(name)_\(type.rawValue)"
+    }
     let name: String
     let type: TableType
     let rowCount: Int?
+    let schema: String?
 
     enum TableType: String, Sendable {
         case table = "TABLE"
@@ -86,13 +92,21 @@ struct TableInfo: Identifiable, Hashable, Sendable {
         case systemTable = "SYSTEM TABLE"
     }
 
+    init(name: String, type: TableType, rowCount: Int?, schema: String? = nil) {
+        self.name = name
+        self.type = type
+        self.rowCount = rowCount
+        self.schema = schema
+    }
+
     static func == (lhs: TableInfo, rhs: TableInfo) -> Bool {
-        lhs.name == rhs.name && lhs.type == rhs.type
+        lhs.name == rhs.name && lhs.type == rhs.type && lhs.schema == rhs.schema
     }
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(name)
         hasher.combine(type)
+        hasher.combine(schema)
     }
 }
 

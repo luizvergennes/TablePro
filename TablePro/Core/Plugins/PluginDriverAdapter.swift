@@ -159,7 +159,12 @@ final class PluginDriverAdapter: DatabaseDriver, SchemaSwitchable {
     // MARK: - Schema Operations
 
     func fetchTables() async throws -> [TableInfo] {
-        let pluginTables = try await pluginDriver.fetchTables(schema: pluginDriver.currentSchema)
+        try await fetchTables(schema: pluginDriver.currentSchema)
+    }
+
+    func fetchTables(schema: String?) async throws -> [TableInfo] {
+        let resolvedSchema = schema ?? pluginDriver.currentSchema
+        let pluginTables = try await pluginDriver.fetchTables(schema: resolvedSchema)
         return pluginTables.map { table in
             let tableType: TableInfo.TableType
             switch table.type.lowercased() {
@@ -177,7 +182,12 @@ final class PluginDriverAdapter: DatabaseDriver, SchemaSwitchable {
                 Self.logger.warning("Unknown plugin table type \"\(table.type, privacy: .public)\" for \"\(table.name, privacy: .public)\"; defaulting to .table")
                 tableType = .table
             }
-            return TableInfo(name: table.name, type: tableType, rowCount: table.rowCount)
+            return TableInfo(
+                name: table.name,
+                type: tableType,
+                rowCount: table.rowCount,
+                schema: table.schema ?? resolvedSchema
+            )
         }
     }
 

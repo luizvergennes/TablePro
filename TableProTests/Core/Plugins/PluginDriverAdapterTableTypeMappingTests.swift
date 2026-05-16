@@ -154,4 +154,27 @@ struct PluginDriverAdapterTableTypeMappingTests {
         #expect(TableInfo.TableType(rawValue: "MATERIALIZED VIEW") == .materializedView)
         #expect(TableInfo.TableType(rawValue: "FOREIGN TABLE") == .foreignTable)
     }
+
+    @Test("Plugin schema propagates to TableInfo when set on PluginTableInfo")
+    func pluginSchemaPropagates() async throws {
+        let driver = StubTableTypeDriver()
+        driver.stubbedTables = [
+            PluginTableInfo(name: "users", type: "TABLE", schema: "analytics"),
+            PluginTableInfo(name: "orders", type: "TABLE", schema: "public")
+        ]
+        let adapter = makeAdapter(driver: driver)
+        let tables = try await adapter.fetchTables()
+        let bySchema = Dictionary(grouping: tables, by: { $0.schema ?? "" })
+        #expect(bySchema["analytics"]?.first?.name == "users")
+        #expect(bySchema["public"]?.first?.name == "orders")
+    }
+
+    @Test("fetchTables(schema:) resolves missing PluginTableInfo schema to requested schema")
+    func explicitSchemaFallback() async throws {
+        let driver = StubTableTypeDriver()
+        driver.stubbedTables = [PluginTableInfo(name: "logs", type: "TABLE")]
+        let adapter = makeAdapter(driver: driver)
+        let tables = try await adapter.fetchTables(schema: "audit")
+        #expect(tables.first?.schema == "audit")
+    }
 }
