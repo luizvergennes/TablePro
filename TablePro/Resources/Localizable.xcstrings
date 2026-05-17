@@ -1555,6 +1555,9 @@
     "%1$@, %2$@" : {
       "shouldTranslate" : false
     },
+    "%d columns" : {
+
+    },
     "%d connected" : {
 
     },
@@ -1723,6 +1726,9 @@
           }
         }
       }
+    },
+    "%d selected" : {
+
     },
     "%d-%d of %@%@ rows" : {
       "localizations" : {
@@ -4292,6 +4298,9 @@
           }
         }
       }
+    },
+    "Add Column…" : {
+
     },
     "Add columns first" : {
       "extractionState" : "stale",
@@ -7764,6 +7773,9 @@
         }
       }
     },
+    "Boolean" : {
+
+    },
     "Border" : {
       "localizations" : {
         "tr" : {
@@ -9169,6 +9181,9 @@
         }
       }
     },
+    "Clear all" : {
+
+    },
     "Clear All" : {
       "localizations" : {
         "tr" : {
@@ -10387,7 +10402,6 @@
       }
     },
     "Column name" : {
-      "extractionState" : "stale",
       "localizations" : {
         "tr" : {
           "stringUnit" : {
@@ -14538,6 +14552,9 @@
         }
       }
     },
+    "Date" : {
+
+    },
     "Date format:" : {
       "localizations" : {
         "tr" : {
@@ -16344,6 +16361,9 @@
     "Document" : {
 
     },
+    "Document Inspector" : {
+
+    },
     "Documentation" : {
       "localizations" : {
         "tr" : {
@@ -16365,6 +16385,9 @@
           }
         }
       }
+    },
+    "does not equal" : {
+
     },
     "Don't Allow" : {
       "localizations" : {
@@ -24749,6 +24772,15 @@
         }
       }
     },
+    "Insert Column" : {
+
+    },
+    "Insert Column After" : {
+
+    },
+    "Insert Column Before" : {
+
+    },
     "Insert in Editor" : {
       "localizations" : {
         "tr" : {
@@ -25147,6 +25179,9 @@
           }
         }
       }
+    },
+    "Integer" : {
+
     },
     "Integrations" : {
       "localizations" : {
@@ -30860,6 +30895,9 @@
         }
       }
     },
+    "No matching rows" : {
+
+    },
     "No matching schemas" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -33435,6 +33473,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "第 %d 页"
+          }
+        }
+      }
+    },
+    "Page %d of %d" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Page %1$d of %2$d"
           }
         }
       }
@@ -37227,6 +37275,9 @@
         }
       }
     },
+    "Real" : {
+
+    },
     "Reasoning" : {
 
     },
@@ -38207,6 +38258,9 @@
         }
       }
     },
+    "Rename Column" : {
+
+    },
     "Rename Group" : {
       "localizations" : {
         "tr" : {
@@ -38228,6 +38282,9 @@
           }
         }
       }
+    },
+    "Rename…" : {
+
     },
     "Renew" : {
       "localizations" : {
@@ -38650,6 +38707,9 @@
           }
         }
       }
+    },
+    "Reset to Inferred" : {
+
     },
     "Reset to System Default" : {
       "localizations" : {
@@ -50432,6 +50492,9 @@
           }
         }
       }
+    },
+    "Updating…" : {
+
     },
     "Uptime" : {
       "localizations" : {
