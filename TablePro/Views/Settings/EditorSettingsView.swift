@@ -32,10 +32,6 @@ struct EditorSettingsView: View {
                 }
             }
 
-            Section("Sidebar") {
-                Toggle("Display schemas on sidebar", isOn: $settings.displaySchemasInSidebar)
-            }
-
             DataGridSection(settings: $dataGridSettings)
         }
         .formStyle(.grouped)

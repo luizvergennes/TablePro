@@ -16304,6 +16304,9 @@
         }
       }
     },
+    "Display schemas as collapsible sections" : {
+
+    },
     "Distributed key-value store for service discovery" : {
 
     },

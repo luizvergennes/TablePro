@@ -177,4 +177,13 @@ struct PluginDriverAdapterTableTypeMappingTests {
         let tables = try await adapter.fetchTables(schema: "audit")
         #expect(tables.first?.schema == "audit")
     }
+
+    @Test("fetchTables() preserves nil schema (no fallback to currentSchema)")
+    func defaultFetchPreservesNilSchema() async throws {
+        let driver = StubTableTypeDriver()
+        driver.stubbedTables = [PluginTableInfo(name: "users", type: "TABLE")]
+        let adapter = makeAdapter(driver: driver)
+        let tables = try await adapter.fetchTables()
+        #expect(tables.first?.schema == nil)
+    }
 }

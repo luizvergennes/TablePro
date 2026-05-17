@@ -18,7 +18,7 @@ extension PluginManager {
 
         if let driver = instance as? any DriverPlugin {
             if !declared.contains(.databaseDriver) {
-                Self.logger.warning("Plugin '\(pluginId)' conforms to DriverPlugin but does not declare .databaseDriver capability — registering anyway")
+                Self.logger.warning("Plugin '\(pluginId)' conforms to DriverPlugin but does not declare .databaseDriver capability - registering anyway")
             }
             do {
                 try validateDriverDescriptor(type(of: driver), pluginId: pluginId)
@@ -57,7 +57,7 @@ extension PluginManager {
 
         if let exportPlugin = instance as? any ExportFormatPlugin {
             if !declared.contains(.exportFormat) {
-                Self.logger.warning("Plugin '\(pluginId)' conforms to ExportFormatPlugin but does not declare .exportFormat capability — registering anyway")
+                Self.logger.warning("Plugin '\(pluginId)' conforms to ExportFormatPlugin but does not declare .exportFormat capability - registering anyway")
             }
             let formatId = type(of: exportPlugin).formatId
             exportPlugins[formatId] = exportPlugin
@@ -67,7 +67,7 @@ extension PluginManager {
 
         if let importPlugin = instance as? any ImportFormatPlugin {
             if !declared.contains(.importFormat) {
-                Self.logger.warning("Plugin '\(pluginId)' conforms to ImportFormatPlugin but does not declare .importFormat capability — registering anyway")
+                Self.logger.warning("Plugin '\(pluginId)' conforms to ImportFormatPlugin but does not declare .importFormat capability - registering anyway")
             }
             let formatId = type(of: importPlugin).formatId
             importPlugins[formatId] = importPlugin

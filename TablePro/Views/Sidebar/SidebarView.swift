@@ -5,12 +5,12 @@
 //  Created by Ngo Quoc Dat on 16/12/25.
 //
 
+import os
 import SwiftUI
 import TableProPluginKit
 
-// MARK: - SidebarView
+private let logger = Logger(subsystem: "com.TablePro", category: "SidebarView")
 
-/// Sidebar view with segmented tab picker for Tables and Favorites
 struct SidebarView: View {
     @State private var viewModel: SidebarViewModel
     @Bindable private var schemaService = SchemaService.shared
@@ -36,7 +36,7 @@ struct SidebarView: View {
     }
 
     private var isSchemaGrouped: Bool {
-        AppSettingsManager.shared.editor.displaySchemasInSidebar
+        AppSettingsManager.shared.sidebar.displaySchemas
             && !schemaService.schemas(for: connectionId).isEmpty
     }
 
@@ -302,7 +302,11 @@ struct SidebarView: View {
                 Text(schema)
                     .contextMenu {
                         Button(String(localized: "Refresh")) {
-                            Task { await coordinator?.refreshTables() }
+                            Task {
+                                await coordinator?.refreshTables()
+                                await coordinator?.refreshProcedures()
+                                await coordinator?.refreshFunctions()
+                            }
                         }
                     }
             }
@@ -328,7 +332,7 @@ struct SidebarView: View {
             do {
                 try await switchable.switchSchema(to: targetSchema)
             } catch {
-                // Schema switch failed; still attempt to open with current schema
+                logger.warning("Schema switch to \(targetSchema, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             }
             onDoubleClick?(table)
         }

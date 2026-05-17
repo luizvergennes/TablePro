@@ -42,8 +42,14 @@ final class SidebarViewModel {
         didSet { persistExpansion(oldValue: oldValue) }
     }
     var schemaExpanded: [String: Bool] = [:] {
-        didSet { persistSchemaExpansion(oldValue: oldValue) }
+        didSet {
+            for (key, value) in schemaExpanded where oldValue[key] != value {
+                schemaExpansionResolveCache[key] = value
+            }
+            persistSchemaExpansion(oldValue: oldValue)
+        }
     }
+    @ObservationIgnored private var schemaExpansionResolveCache: [String: Bool] = [:]
     var isRedisKeysExpanded: Bool {
         didSet {
             UserDefaults.standard.set(
@@ -191,6 +197,13 @@ final class SidebarViewModel {
     func effectiveSchemaExpanded(_ schemaName: String, hasMatches: Bool) -> Bool {
         if !searchText.isEmpty && hasMatches { return true }
         if let stored = schemaExpanded[schemaName] { return stored }
+        if let cached = schemaExpansionResolveCache[schemaName] { return cached }
+        let resolved = resolveStoredSchemaExpansion(schemaName)
+        schemaExpansionResolveCache[schemaName] = resolved
+        return resolved
+    }
+
+    private func resolveStoredSchemaExpansion(_ schemaName: String) -> Bool {
         let key = SidebarPersistenceKey.schemaExpanded(connectionId: connectionId, schemaName: schemaName)
         if UserDefaults.standard.object(forKey: key) != nil {
             return UserDefaults.standard.bool(forKey: key)

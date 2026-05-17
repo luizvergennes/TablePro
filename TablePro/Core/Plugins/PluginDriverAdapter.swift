@@ -159,36 +159,39 @@ final class PluginDriverAdapter: DatabaseDriver, SchemaSwitchable {
     // MARK: - Schema Operations
 
     func fetchTables() async throws -> [TableInfo] {
-        try await fetchTables(schema: pluginDriver.currentSchema)
+        let pluginTables = try await pluginDriver.fetchTables(schema: pluginDriver.currentSchema)
+        return pluginTables.map { mapPluginTable($0, schemaFallback: nil) }
     }
 
     func fetchTables(schema: String?) async throws -> [TableInfo] {
         let resolvedSchema = schema ?? pluginDriver.currentSchema
         let pluginTables = try await pluginDriver.fetchTables(schema: resolvedSchema)
-        return pluginTables.map { table in
-            let tableType: TableInfo.TableType
-            switch table.type.lowercased() {
-            case "table", "base table", "prefix":
-                tableType = .table
-            case "view":
-                tableType = .view
-            case "materialized view", "materialized_view":
-                tableType = .materializedView
-            case "foreign table", "foreign_table":
-                tableType = .foreignTable
-            case "system table", "system base table", "system view":
-                tableType = .systemTable
-            default:
-                Self.logger.warning("Unknown plugin table type \"\(table.type, privacy: .public)\" for \"\(table.name, privacy: .public)\"; defaulting to .table")
-                tableType = .table
-            }
-            return TableInfo(
-                name: table.name,
-                type: tableType,
-                rowCount: table.rowCount,
-                schema: table.schema ?? resolvedSchema
-            )
+        return pluginTables.map { mapPluginTable($0, schemaFallback: resolvedSchema) }
+    }
+
+    private func mapPluginTable(_ table: PluginTableInfo, schemaFallback: String?) -> TableInfo {
+        let tableType: TableInfo.TableType
+        switch table.type.lowercased() {
+        case "table", "base table", "prefix":
+            tableType = .table
+        case "view":
+            tableType = .view
+        case "materialized view", "materialized_view":
+            tableType = .materializedView
+        case "foreign table", "foreign_table":
+            tableType = .foreignTable
+        case "system table", "system base table", "system view":
+            tableType = .systemTable
+        default:
+            Self.logger.warning("Unknown plugin table type \"\(table.type, privacy: .public)\" for \"\(table.name, privacy: .public)\"; defaulting to .table")
+            tableType = .table
         }
+        return TableInfo(
+            name: table.name,
+            type: tableType,
+            rowCount: table.rowCount,
+            schema: table.schema ?? schemaFallback
+        )
     }
 
     func fetchColumns(table: String) async throws -> [ColumnInfo] {

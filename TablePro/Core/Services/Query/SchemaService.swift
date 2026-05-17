@@ -23,15 +23,15 @@ final class SchemaService {
     @ObservationIgnored private let functionDedup = OnceTask<UUID, [RoutineInfo]>()
     @ObservationIgnored private let schemasDedup = OnceTask<UUID, [String]>()
     @ObservationIgnored private var settingsCancellable: AnyCancellable?
-    @ObservationIgnored private var lastDisplaySchemasInSidebar: Bool = false
+    @ObservationIgnored private var lastDisplaySchemas: Bool = false
     @ObservationIgnored private static let logger = Logger(subsystem: "com.TablePro", category: "SchemaService")
 
     init() {
-        lastDisplaySchemasInSidebar = AppSettingsManager.shared.editor.displaySchemasInSidebar
-        settingsCancellable = AppEvents.shared.editorSettingsChanged
+        lastDisplaySchemas = AppSettingsManager.shared.sidebar.displaySchemas
+        settingsCancellable = AppEvents.shared.sidebarSettingsChanged
             .sink { [weak self] in
                 Task { @MainActor [weak self] in
-                    self?.handleEditorSettingsChange()
+                    self?.handleSidebarSettingsChange()
                 }
             }
     }
@@ -147,7 +147,7 @@ final class SchemaService {
     ) async {
         states[connectionId] = .loading
 
-        let wantsGrouping = AppSettingsManager.shared.editor.displaySchemasInSidebar
+        let wantsGrouping = AppSettingsManager.shared.sidebar.displaySchemas
             && PluginManager.shared.supportsSchemaSwitching(for: connection.type)
 
         if wantsGrouping {
@@ -260,7 +260,7 @@ final class SchemaService {
     }
 
     private func visibleSchemasForGroupedReload(connectionId: UUID, driver: DatabaseDriver) -> [String]? {
-        guard AppSettingsManager.shared.editor.displaySchemasInSidebar else { return nil }
+        guard AppSettingsManager.shared.sidebar.displaySchemas else { return nil }
         let schemas = schemasInOrder[connectionId] ?? []
         guard !schemas.isEmpty else { return nil }
         return schemas
@@ -270,18 +270,13 @@ final class SchemaService {
         driver: DatabaseDriver,
         schemas: [String]
     ) async throws -> [TableInfo] {
-        try await withThrowingTaskGroup(of: [TableInfo].self) { group in
-            for schema in schemas {
-                group.addTask {
-                    try await driver.fetchTables(schema: schema)
-                }
-            }
-            var aggregated: [TableInfo] = []
-            for try await tables in group {
-                aggregated.append(contentsOf: tables)
-            }
-            return aggregated
+        var aggregated: [TableInfo] = []
+        for schema in schemas {
+            try Task.checkCancellation()
+            let tables = try await driver.fetchTables(schema: schema)
+            aggregated.append(contentsOf: tables)
         }
+        return aggregated
     }
 
     private static func fetchRoutinesAcrossSchemas(
@@ -289,21 +284,17 @@ final class SchemaService {
         schemas: [String],
         kind: RoutineInfo.Kind
     ) async throws -> [RoutineInfo] {
-        try await withThrowingTaskGroup(of: [RoutineInfo].self) { group in
-            for schema in schemas {
-                group.addTask {
-                    switch kind {
-                    case .procedure: return try await driver.fetchProcedures(schema: schema)
-                    case .function:  return try await driver.fetchFunctions(schema: schema)
-                    }
-                }
+        var aggregated: [RoutineInfo] = []
+        for schema in schemas {
+            try Task.checkCancellation()
+            let routines: [RoutineInfo]
+            switch kind {
+            case .procedure: routines = try await driver.fetchProcedures(schema: schema)
+            case .function:  routines = try await driver.fetchFunctions(schema: schema)
             }
-            var aggregated: [RoutineInfo] = []
-            for try await routines in group {
-                aggregated.append(contentsOf: routines)
-            }
-            return aggregated
+            aggregated.append(contentsOf: routines)
         }
+        return aggregated
     }
 
     private static func fetchRoutinesSafely(
@@ -324,10 +315,10 @@ final class SchemaService {
         }
     }
 
-    private func handleEditorSettingsChange() {
-        let now = AppSettingsManager.shared.editor.displaySchemasInSidebar
-        guard now != lastDisplaySchemasInSidebar else { return }
-        lastDisplaySchemasInSidebar = now
+    private func handleSidebarSettingsChange() {
+        let now = AppSettingsManager.shared.sidebar.displaySchemas
+        guard now != lastDisplaySchemas else { return }
+        lastDisplaySchemas = now
 
         let sessions = DatabaseManager.shared.activeSessions
         for (connectionId, session) in sessions {

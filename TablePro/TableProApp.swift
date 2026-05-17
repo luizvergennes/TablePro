@@ -244,7 +244,7 @@ struct AppMenuCommands: Commands {
                 actions?.saveChanges()
             }
             .optionalKeyboardShortcut(shortcut(for: .saveChanges))
-            // Match toolbar: also disable when no pending changes — avoids
+            // Match toolbar: also disable when no pending changes - avoids
             // a no-op Cmd+S when nothing has been edited.
             .disabled(
                 !(actions?.isConnected ?? false)
@@ -423,7 +423,7 @@ struct AppMenuCommands: Commands {
                 // Check if first responder is a text view (SQL editor)
                 if let firstResponder = NSApp.keyWindow?.firstResponder,
                    firstResponder is NSTextView || firstResponder is TextView {
-                    // Send undo: (with colon) through responder chain —
+                    // Send undo: (with colon) through responder chain -
                     // CodeEditTextView.TextView responds to undo: via @objc func undo(_:)
                     NSApp.sendAction(#selector(TableProResponderActions.undo(_:)), to: nil, from: nil)
                 } else {
