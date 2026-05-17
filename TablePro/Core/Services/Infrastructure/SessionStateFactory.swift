@@ -96,13 +96,15 @@ enum SessionStateFactory {
                                 try tabMgr.addPreviewTableTab(
                                     tableName: tableName,
                                     databaseType: connection.type,
-                                    databaseName: payload.databaseName ?? activeDatabaseName
+                                    databaseName: payload.databaseName ?? activeDatabaseName,
+                                    schemaName: payload.schemaName
                                 )
                             } else {
                                 try tabMgr.addTableTab(
                                     tableName: tableName,
                                     databaseType: connection.type,
-                                    databaseName: payload.databaseName ?? activeDatabaseName
+                                    databaseName: payload.databaseName ?? activeDatabaseName,
+                                    schemaName: payload.schemaName
                                 )
                             }
                         } catch {
