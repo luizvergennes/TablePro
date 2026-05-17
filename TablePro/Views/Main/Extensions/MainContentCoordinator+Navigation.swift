@@ -15,7 +15,7 @@ private let navigationLogger = Logger(subsystem: "com.TablePro", category: "Main
 extension MainContentCoordinator {
     // MARK: - Table Tab Opening
 
-    func openTableTab(_ tableName: String, showStructure: Bool = false, isView: Bool = false) {
+    func openTableTab(_ tableName: String, schema: String? = nil, showStructure: Bool = false, isView: Bool = false) {
         let navigationModel = PluginMetadataRegistry.shared.snapshot(
             forTypeId: connection.type.pluginTypeId
         )?.navigationModel ?? .standard
@@ -30,13 +30,15 @@ extension MainContentCoordinator {
             currentDatabase = activeDatabaseName
         }
 
-        let currentSchema = DatabaseManager.shared.session(for: connectionId)?.currentSchema
+        let connectionSchema = DatabaseManager.shared.session(for: connectionId)?.currentSchema
+        let resolvedSchema = schema ?? connectionSchema
 
         // Fast path: if this table is already the active tab in the same database, skip all work
         if let current = tabManager.selectedTab,
            current.tabType == .table,
            current.tableContext.tableName == tableName,
-           current.tableContext.databaseName == currentDatabase {
+           current.tableContext.databaseName == currentDatabase,
+           current.tableContext.schemaName == resolvedSchema {
             if showStructure, let (_, tabIndex) = tabManager.selectedTabAndIndex {
                 tabManager.mutate(at: tabIndex) { $0.display.resultsViewMode = .structure }
             }
@@ -51,7 +53,8 @@ extension MainContentCoordinator {
                     try tabManager.addTableTab(
                         tableName: tableName,
                         databaseType: connection.type,
-                        databaseName: currentDatabase
+                        databaseName: currentDatabase,
+                        schemaName: resolvedSchema
                     )
                 } catch {
                     navigationLogger.error("openTableTab addTableTab failed: \(error.localizedDescription, privacy: .public)")
@@ -67,6 +70,7 @@ extension MainContentCoordinator {
                 tab.tabType == .table
                     && tab.tableContext.tableName == tableName
                     && tab.tableContext.databaseName == currentDatabase
+                    && tab.tableContext.schemaName == resolvedSchema
             }
             guard hasMatch,
                   let windowId = sibling.windowId,
@@ -83,17 +87,19 @@ extension MainContentCoordinator {
                     try tabManager.addPreviewTableTab(
                         tableName: tableName,
                         databaseType: connection.type,
-                        databaseName: currentDatabase
+                        databaseName: currentDatabase,
+                        schemaName: resolvedSchema
                     )
                     if let wid = windowId {
                         WindowLifecycleMonitor.shared.setPreview(true, for: wid)
-                        WindowLifecycleMonitor.shared.window(for: wid)?.subtitle = "\(connection.name) — Preview"
+                        WindowLifecycleMonitor.shared.window(for: wid)?.subtitle = "\(connection.name) - Preview"
                     }
                 } else {
                     try tabManager.addTableTab(
                         tableName: tableName,
                         databaseType: connection.type,
-                        databaseName: currentDatabase
+                        databaseName: currentDatabase,
+                        schemaName: resolvedSchema
                     )
                 }
             } catch {
@@ -104,7 +110,7 @@ extension MainContentCoordinator {
                 tabManager.mutate(at: tabIndex) { tab in
                     tab.tableContext.isView = isView
                     tab.tableContext.isEditable = !isView
-                    tab.tableContext.schemaName = currentSchema
+                    tab.tableContext.schemaName = resolvedSchema
                     tab.pagination.reset()
                 }
                 toolbarState.isTableTab = true
@@ -132,7 +138,7 @@ extension MainContentCoordinator {
                     tableName: tableName,
                     databaseType: connection.type,
                     databaseName: currentDatabase,
-                    schemaName: currentSchema
+                    schemaName: resolvedSchema
                 )
                 if replaced {
                     clearFilterState()
@@ -163,7 +169,7 @@ extension MainContentCoordinator {
                 tabType: .table,
                 tableName: tableName,
                 databaseName: currentDatabase,
-                schemaName: currentSchema,
+                schemaName: resolvedSchema,
                 isView: isView,
                 showStructure: showStructure
             )
@@ -173,7 +179,7 @@ extension MainContentCoordinator {
 
         // Preview tab mode: reuse or create a preview tab instead of a new native window
         if AppSettingsManager.shared.tabs.enablePreviewTabs {
-            openPreviewTab(tableName, isView: isView, databaseName: currentDatabase, schemaName: currentSchema, showStructure: showStructure)
+            openPreviewTab(tableName, isView: isView, databaseName: currentDatabase, schemaName: resolvedSchema, showStructure: showStructure)
             return
         }
 
@@ -183,7 +189,7 @@ extension MainContentCoordinator {
             tabType: .table,
             tableName: tableName,
             databaseName: currentDatabase,
-            schemaName: currentSchema,
+            schemaName: resolvedSchema,
             isView: isView,
             showStructure: showStructure
         )

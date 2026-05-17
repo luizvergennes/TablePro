@@ -142,10 +142,14 @@ final class QueryTabManager {
         tableName: String,
         databaseType: DatabaseType = .mysql,
         databaseName: String = "",
+        schemaName: String? = nil,
         quoteIdentifier: ((String) -> String)? = nil
     ) throws {
         if let existingTab = tabs.first(where: {
-            $0.tabType == .table && $0.tableContext.tableName == tableName && $0.tableContext.databaseName == databaseName
+            $0.tabType == .table
+                && $0.tableContext.tableName == tableName
+                && $0.tableContext.databaseName == databaseName
+                && $0.tableContext.schemaName == schemaName
         }) {
             selectedTabId = existingTab.id
             return
@@ -153,7 +157,10 @@ final class QueryTabManager {
 
         let pageSize = AppSettingsManager.shared.dataGrid.defaultPageSize
         let query = try QueryTab.buildBaseTableQuery(
-            tableName: tableName, databaseType: databaseType, quoteIdentifier: quoteIdentifier
+            tableName: tableName,
+            databaseType: databaseType,
+            schemaName: schemaName,
+            quoteIdentifier: quoteIdentifier
         )
         var newTab = QueryTab(
             title: tableName,
@@ -163,6 +170,7 @@ final class QueryTabManager {
         )
         newTab.pagination = PaginationState(pageSize: pageSize)
         newTab.tableContext.databaseName = databaseName
+        newTab.tableContext.schemaName = schemaName
         tabs.append(newTab)
         selectedTabId = newTab.id
     }
@@ -219,10 +227,14 @@ final class QueryTabManager {
         tableName: String,
         databaseType: DatabaseType = .mysql,
         databaseName: String = "",
+        schemaName: String? = nil,
         quoteIdentifier: ((String) -> String)? = nil
     ) throws {
         if let existing = tabs.first(where: {
-            $0.tabType == .table && $0.tableContext.tableName == tableName && $0.tableContext.databaseName == databaseName
+            $0.tabType == .table
+                && $0.tableContext.tableName == tableName
+                && $0.tableContext.databaseName == databaseName
+                && $0.tableContext.schemaName == schemaName
         }) {
             selectedTabId = existing.id
             return
@@ -230,7 +242,10 @@ final class QueryTabManager {
 
         let pageSize = AppSettingsManager.shared.dataGrid.defaultPageSize
         let query = try QueryTab.buildBaseTableQuery(
-            tableName: tableName, databaseType: databaseType, quoteIdentifier: quoteIdentifier
+            tableName: tableName,
+            databaseType: databaseType,
+            schemaName: schemaName,
+            quoteIdentifier: quoteIdentifier
         )
         var newTab = QueryTab(
             title: tableName,
@@ -240,6 +255,7 @@ final class QueryTabManager {
         )
         newTab.pagination = PaginationState(pageSize: pageSize)
         newTab.tableContext.databaseName = databaseName
+        newTab.tableContext.schemaName = schemaName
         newTab.isPreview = true
         tabs.append(newTab)
         selectedTabId = newTab.id
